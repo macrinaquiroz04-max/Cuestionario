@@ -286,13 +286,14 @@ function SurveyReport({ data, generatedAt }: { data: SurveyResults; generatedAt:
 
 // ─── Función pública para generar el buffer del PDF ──────────────────────────
 export async function generateSurveyPDF(data: SurveyResults): Promise<Buffer> {
-  const generatedAt = new Date().toLocaleDateString('es-MX', {
+  const generatedAt = new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Mexico_City',
     day: '2-digit',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  })
+  }).format(new Date())
 
   const element = React.createElement(SurveyReport, { data, generatedAt })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

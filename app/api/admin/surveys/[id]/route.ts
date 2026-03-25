@@ -104,16 +104,39 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     let updatedOptions: Option[] = []
     if (options) {
-      // Reemplazar opciones: eliminar + re-insertar
-      await sql`DELETE FROM options WHERE survey_id = ${id}`
+      // Obtener opciones actuales en BD
+      const currentOpts = await sql<{id: string}[]>`SELECT id FROM options WHERE survey_id = ${id}`
+      const currentIds = new Set(currentOpts.map(o => o.id))
+      const incomingIds = new Set(options.filter(o => o.id).map(o => o.id!))
+
+      // Borrar votos y opciones que fueron eliminadas del formulario
+      for (const cid of currentIds) {
+        if (!incomingIds.has(cid)) {
+          await sql`DELETE FROM votes WHERE option_id = ${cid}`
+          await sql`DELETE FROM options WHERE id = ${cid}`
+        }
+      }
+
+      // Actualizar o insertar cada opción
       updatedOptions = []
       for (const o of options) {
-        const [opt] = await sql<Option[]>`
-          INSERT INTO options (survey_id, text, "order")
-          VALUES (${id}, ${o.text}, ${o.order}::integer)
-          RETURNING *
-        `
-        updatedOptions.push(opt)
+        if (o.id && currentIds.has(o.id)) {
+          // Opción existente: actualizar texto y orden
+          const [opt] = await sql<Option[]>`
+            UPDATE options SET text = ${o.text}, "order" = ${o.order}::integer
+            WHERE id = ${o.id}
+            RETURNING *
+          `
+          updatedOptions.push(opt)
+        } else {
+          // Opción nueva: insertar
+          const [opt] = await sql<Option[]>`
+            INSERT INTO options (survey_id, text, "order")
+            VALUES (${id}, ${o.text}, ${o.order}::integer)
+            RETURNING *
+          `
+          updatedOptions.push(opt)
+        }
       }
       // Limpiar contadores Redis (cambió la estructura de opciones)
       await redis.del(SURVEY_COUNTS_KEY(id))
