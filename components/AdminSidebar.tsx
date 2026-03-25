@@ -4,7 +4,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 const navItems = [
@@ -14,17 +14,19 @@ const navItems = [
 
 export default function AdminSidebar() {
   const pathname   = usePathname()
-  const router     = useRouter()
-
-  // No mostrar el sidebar en la página de login
-  if (pathname === '/admin/login') return null
   const [loggingOut,  setLoggingOut]  = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  // No mostrar el sidebar en la página de login
+  if (pathname === '/admin/login') return null
+
   async function handleLogout() {
     setLoggingOut(true)
-    await fetch('/api/admin/logout', { method: 'POST' })
-    router.push('/admin/login')
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' })
+    } catch { /* noop */ }
+    // Forzar recarga completa para que el middleware limpie la sesión
+    window.location.replace('/admin/login')
   }
 
   const NavLinks = () => (
