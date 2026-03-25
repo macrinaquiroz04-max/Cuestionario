@@ -4,22 +4,19 @@
 
 import { notFound } from 'next/navigation'
 import SurveyForm from '@/components/SurveyForm'
+import sql from '@/lib/db'
 import type { Survey, Option } from '@/lib/types'
 
 interface PageProps { params: { id: string } }
 
 async function getSurveyData(id: string): Promise<{ survey: Survey; options: Option[] } | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
-    // Para rutas admin del servidor usamos las cookies — pero en SSR debemos pasar el header.
-    // Aquí hacemos la llamada a la API con cache: no-store.
-    const res = await fetch(`${baseUrl}/api/admin/surveys/${id}`, {
-      cache: 'no-store',
-      // NOTA: En producción, el middleware ya verifica el JWT.
-      // Aquí necesitamos las cookies del request — se pasan automáticamente en SSR.
-    })
-    if (!res.ok) return null
-    return res.json()
+    const [survey] = await sql<Survey[]>`SELECT * FROM surveys WHERE id = ${id}`
+    if (!survey) return null
+    const options = await sql<Option[]>`
+      SELECT * FROM options WHERE survey_id = ${id} ORDER BY "order" ASC
+    `
+    return { survey, options }
   } catch {
     return null
   }
