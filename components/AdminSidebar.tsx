@@ -15,6 +15,9 @@ const navItems = [
 export default function AdminSidebar() {
   const pathname   = usePathname()
   const router     = useRouter()
+
+  // No mostrar el sidebar en la página de login
+  if (pathname === '/admin/login') return null
   const [loggingOut,  setLoggingOut]  = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
