@@ -1,0 +1,39 @@
+{
+  "name": "survey-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p $PORT",
+    "seed": "tsx scripts/seed.ts",
+    "worker:deploy": "cd workers && npx wrangler deploy vote-processor.ts --name vote-processor",
+    "worker:pdf:deploy": "cd workers && npx wrangler deploy pdf-generator.ts --name pdf-generator"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^3.3.3",
+    "aws4fetch": "^1.0.17",
+    "ioredis": "^5.10.1",
+    "jose": "^5.2.3",
+    "next": "14.2.35",
+    "pdf-lib": "^1.17.1",
+    "postgres": "^3.4.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "redis": "^5.11.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "1.9.0",
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5",
+    "wrangler": "^3.31.0"
+  }
+}

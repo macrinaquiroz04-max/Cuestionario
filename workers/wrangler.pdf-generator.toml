@@ -1,0 +1,7 @@
+name = "pdf-generator"
+main = "pdf-generator.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+JWT_SECRET = ""

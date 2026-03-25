@@ -1,0 +1,14 @@
+# Cloudflare Pages + Workers — Survey Platform
+name = "survey-platform"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = ".vercel/output/static"
+
+[[r2_buckets]]
+binding = "SURVEY_IMAGES"
+bucket_name = "survey-images"
+
+# Variables de entorno (sobreescribir en el dashboard de CF)
+[vars]
+R2_BUCKET_NAME = "survey-images"

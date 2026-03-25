@@ -1,0 +1,9 @@
+.env.local
+.env
+.next/
+node_modules/
+.vercel/
+dist/
+*.log
+.DS_Store
+Thumbs.db

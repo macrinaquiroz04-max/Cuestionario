@@ -1,0 +1,243 @@
+/**
+ * components/SurveyForm.tsx — Formulario reutilizable para crear/editar encuesta
+ */
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import ImageUpload from './ImageUpload'
+import type { Survey, Option } from '@/lib/types'
+
+interface SurveyFormProps {
+  initialSurvey?: Survey
+  initialOptions?: Option[]
+  mode: 'create' | 'edit'
+}
+
+interface OptionField {
+  id?: string
+  text: string
+  order: number
+}
+
+export default function SurveyForm({ initialSurvey, initialOptions, mode }: SurveyFormProps) {
+  const router = useRouter()
+
+  const [title, setTitle]           = useState(initialSurvey?.title ?? '')
+  const [description, setDesc]      = useState(initialSurvey?.description ?? '')
+  const [imageUrl, setImageUrl]     = useState<string | null>(initialSurvey?.image_url ?? null)
+  const [question, setQuestion]     = useState(initialSurvey?.question ?? '')
+  const [isActive, setIsActive]     = useState(initialSurvey?.is_active ?? true)
+  const [closeAt, setCloseAt]       = useState(
+    initialSurvey?.close_at ? initialSurvey.close_at.slice(0, 16) : ''
+  )
+  const [options, setOptions] = useState<OptionField[]>(
+    initialOptions?.map(o => ({ id: o.id, text: o.text, order: o.order })) ??
+    [{ text: '', order: 0 }, { text: '', order: 1 }]
+  )
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+
+  function addOption() {
+    if (options.length >= 10) return
+    setOptions([...options, { text: '', order: options.length }])
+  }
+
+  function removeOption(i: number) {
+    if (options.length <= 2) return
+    setOptions(options.filter((_, idx) => idx !== i).map((o, idx) => ({ ...o, order: idx })))
+  }
+
+  function updateOption(i: number, text: string) {
+    setOptions(options.map((o, idx) => idx === i ? { ...o, text } : o))
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const body = {
+      title,
+      description: description || null,
+      image_url: imageUrl,
+      question,
+      is_active: isActive,
+      close_at: closeAt ? new Date(closeAt).toISOString() : null,
+      options: options.map((o, i) => ({ ...o, text: o.text.trim(), order: i })).filter(o => o.text),
+    }
+
+    if (body.options.length < 2) {
+      setError('Debes ingresar al menos 2 opciones.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const url = mode === 'create'
+        ? '/api/admin/surveys'
+        : `/api/admin/surveys/${initialSurvey!.id}`
+
+      const res = await fetch(url, {
+        method: mode === 'create' ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Error al guardar')
+        return
+      }
+
+      router.push('/admin/surveys')
+      router.refresh()
+    } catch {
+      setError('Error de red al guardar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      {/* Título */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+        <input
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          required
+          maxLength={255}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          placeholder="Ej: ¿Cuál es tu lenguaje favorito?"
+        />
+      </div>
+
+      {/* Descripción */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <textarea
+          value={description}
+          onChange={e => setDesc(e.target.value)}
+          rows={2}
+          maxLength={1000}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+          placeholder="Descripción opcional..."
+        />
+      </div>
+
+      {/* Imagen */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Imagen de portada</label>
+        <ImageUpload value={imageUrl} onChange={setImageUrl} />
+      </div>
+
+      {/* Pregunta */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Pregunta *</label>
+        <input
+          type="text"
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          required
+          maxLength={500}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          placeholder="La pregunta que verán los participantes"
+        />
+      </div>
+
+      {/* Opciones */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Opciones ({options.length}/10) *
+        </label>
+        <div className="space-y-2">
+          {options.map((opt, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-sm text-gray-400 w-5">{i + 1}.</span>
+              <input
+                type="text"
+                value={opt.text}
+                onChange={e => updateOption(i, e.target.value)}
+                maxLength={500}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                placeholder={`Opción ${i + 1}`}
+              />
+              <button
+                type="button"
+                onClick={() => removeOption(i)}
+                disabled={options.length <= 2}
+                className="text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
+                title="Eliminar opción"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+        {options.length < 10 && (
+          <button
+            type="button"
+            onClick={addOption}
+            className="mt-2 text-sm text-brand-600 hover:text-brand-700 font-medium"
+          >
+            + Agregar opción
+          </button>
+        )}
+      </div>
+
+      {/* Estado y fecha */}
+      <div className="flex flex-wrap gap-6">
+        <div className="flex items-center gap-2">
+          <input
+            id="is_active"
+            type="checkbox"
+            checked={isActive}
+            onChange={e => setIsActive(e.target.checked)}
+            className="w-4 h-4 accent-brand-600"
+          />
+          <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+            Activa (visible para el público)
+          </label>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de cierre</label>
+          <input
+            type="datetime-local"
+            value={closeAt}
+            onChange={e => setCloseAt(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+          {error}
+        </p>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+        >
+          {loading ? 'Guardando...' : mode === 'create' ? 'Crear encuesta' : 'Guardar cambios'}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          disabled={loading}
+          className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}
