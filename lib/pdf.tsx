@@ -295,5 +295,6 @@ export async function generateSurveyPDF(data: SurveyResults): Promise<Buffer> {
   })
 
   const element = React.createElement(SurveyReport, { data, generatedAt })
-  return renderToBuffer(element)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return renderToBuffer(element as any)
 }
