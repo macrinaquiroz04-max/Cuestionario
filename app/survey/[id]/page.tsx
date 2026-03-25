@@ -44,7 +44,7 @@ export default async function SurveyPage({ params }: PageProps) {
             <img
               src={survey.image_url}
               alt={survey.title}
-              className="w-full h-auto object-contain"
+              className="w-full max-h-72 object-cover object-top"
             />
           </div>
         )}

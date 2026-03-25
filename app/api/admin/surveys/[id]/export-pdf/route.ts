@@ -1,15 +1,16 @@
 /**
  * app/api/admin/surveys/[id]/export-pdf/route.ts
- *
- * Delega la generación del PDF al Cloudflare Worker (pdf-generator).
- * Si PDF_WORKER_URL no está configurado, responde con instrucciones.
+ * Genera el PDF directamente en Next.js con @react-pdf/renderer (Node.js runtime)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import sql from '@/lib/db'
 import redis, { SURVEY_COUNTS_KEY } from '@/lib/redis'
 import { verifyJWT, AUTH_COOKIE } from '@/lib/auth'
+import { generateSurveyPDF } from '@/lib/pdf'
 import type { Survey, Option, OptionResult, SurveyResults } from '@/lib/types'
+
+export const runtime = 'nodejs'
 
 interface RouteContext { params: { id: string } }
 
@@ -26,7 +27,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
   const { id } = params
 
   try {
-    // Recopilar datos para el PDF
     const [survey] = await sql<Survey[]>`SELECT * FROM surveys WHERE id = ${id}`
     if (!survey) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
@@ -39,7 +39,6 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       Object.entries(redisHash ?? {}).map(([k, v]) => [k, parseInt(v)])
     )
 
-    // Completar con BD
     const dbRows = await sql<{ option_id: string; count: string }[]>`
       SELECT option_id, COUNT(*) AS count FROM votes WHERE survey_id = ${id} GROUP BY option_id
     `
@@ -66,32 +65,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       last_vote_at: lastVote?.created_at ?? null,
     }
 
-    // Enviar al PDF Worker
-    const pdfWorkerUrl = process.env.PDF_WORKER_URL
-    if (!pdfWorkerUrl) {
-      return NextResponse.json(
-        { error: 'PDF_WORKER_URL no configurado. Despliega workers/pdf-generator.ts en Cloudflare Workers.' },
-        { status: 503 }
-      )
-    }
-
-    const workerRes = await fetch(`${pdfWorkerUrl}/generate-pdf`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Firmar la petición interna con el JWT secret para evitar acceso externo
-        'X-Internal-Secret': process.env.JWT_SECRET ?? '',
-      },
-      body: JSON.stringify(data),
-    })
-
-    if (!workerRes.ok) {
-      const error = await workerRes.text()
-      console.error('[export-pdf] Worker error:', error)
-      return NextResponse.json({ error: 'Error al generar PDF' }, { status: 500 })
-    }
-
-    const pdfBuffer = await workerRes.arrayBuffer()
+    const pdfBuffer = await generateSurveyPDF(data)
 
     return new NextResponse(pdfBuffer, {
       headers: {
@@ -104,3 +78,4 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+

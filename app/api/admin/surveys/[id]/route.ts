@@ -106,12 +106,15 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     if (options) {
       // Reemplazar opciones: eliminar + re-insertar
       await sql`DELETE FROM options WHERE survey_id = ${id}`
-      updatedOptions = await sql<Option[]>`
-        INSERT INTO options (survey_id, text, "order")
-        SELECT ${id}, unnested.text, unnested."order"
-        FROM (VALUES ${sql(options.map(o => [id, o.text, o.order]))}) AS unnested(survey_id, text, "order")
-        RETURNING *
-      `
+      updatedOptions = []
+      for (const o of options) {
+        const [opt] = await sql<Option[]>`
+          INSERT INTO options (survey_id, text, "order")
+          VALUES (${id}, ${o.text}, ${o.order}::integer)
+          RETURNING *
+        `
+        updatedOptions.push(opt)
+      }
       // Limpiar contadores Redis (cambió la estructura de opciones)
       await redis.del(SURVEY_COUNTS_KEY(id))
     } else {
