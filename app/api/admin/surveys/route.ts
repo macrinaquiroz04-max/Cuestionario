@@ -110,10 +110,7 @@ export async function POST(req: NextRequest) {
 
     const optionRows = await sql<Option[]>`
       INSERT INTO options (survey_id, text, "order")
-      SELECT ${survey.id}, unnested.text, unnested."order"
-      FROM (
-        VALUES ${sql(options.map(o => [survey.id, o.text, o.order]))}
-      ) AS unnested(survey_id, text, "order")
+      VALUES ${sql(options.map(o => [survey.id, o.text, o.order]))}
       RETURNING *
     `
 
