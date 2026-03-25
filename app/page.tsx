@@ -2,16 +2,20 @@
  * app/page.tsx — Home público: lista de encuestas activas
  */
 import Link from 'next/link'
+import sql from '@/lib/db'
 import type { Survey } from '@/lib/types'
 
+export const revalidate = 0 // nunca cachear — siempre leer fresco
 
 async function getSurveys(): Promise<Survey[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/surveys`, { next: { revalidate: 30 } })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.surveys ?? []
+    return await sql<Survey[]>`
+      SELECT id, title, description, image_url, question, is_active, close_at, created_at
+      FROM surveys
+      WHERE is_active = true
+        AND (close_at IS NULL OR close_at > now())
+      ORDER BY created_at DESC
+    `
   } catch {
     return []
   }
