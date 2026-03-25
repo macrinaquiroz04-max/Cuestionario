@@ -46,8 +46,9 @@ export default function ImageUpload({ value, onChange }: ImageUploadProps) {
   return (
     <div className="space-y-2">
       {value && (
-        <div className="relative w-full rounded-lg overflow-hidden border border-gray-200" style={{ aspectRatio: '16/9' }}>
-          <Image src={value} alt="Portada" fill className="object-cover" style={{ imageOrientation: 'from-image' }} />
+        <div className="relative flex justify-center w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="Portada" className="max-w-full h-auto" style={{ maxHeight: '240px', imageOrientation: 'from-image' }} />
           <button
             type="button"
             onClick={() => onChange(null)}
