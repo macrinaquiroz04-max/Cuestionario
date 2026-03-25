@@ -3,6 +3,7 @@
  */
 
 import { notFound } from 'next/navigation'
+import sql from '@/lib/db'
 import type { Survey, Option } from '@/lib/types'
 import VoteForm from './VoteForm'
 
@@ -12,10 +13,22 @@ interface PageProps {
 
 async function getSurveyData(id: string): Promise<{ survey: Survey; options: Option[] } | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/surveys/${id}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    return res.json()
+    const [survey] = await sql<Survey[]>`
+      SELECT id, title, description, image_url, question, is_active, close_at, created_at
+      FROM surveys
+      WHERE id = ${id}
+        AND is_active = true
+        AND (close_at IS NULL OR close_at > now())
+    `
+    if (!survey) return null
+
+    const options = await sql<Option[]>`
+      SELECT id, survey_id, text, "order"
+      FROM options
+      WHERE survey_id = ${id}
+      ORDER BY "order" ASC
+    `
+    return { survey, options }
   } catch {
     return null
   }
