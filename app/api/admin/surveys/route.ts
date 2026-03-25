@@ -108,11 +108,15 @@ export async function POST(req: NextRequest) {
       RETURNING *
     `
 
-    const optionRows = await sql<Option[]>`
-      INSERT INTO options (survey_id, text, "order")
-      VALUES ${sql(options.map(o => [survey.id, o.text, o.order]))}
-      RETURNING *
-    `
+    const optionRows: Option[] = []
+    for (const o of options) {
+      const [opt] = await sql<Option[]>`
+        INSERT INTO options (survey_id, text, "order")
+        VALUES (${survey.id}, ${o.text}, ${o.order}::integer)
+        RETURNING *
+      `
+      optionRows.push(opt)
+    }
 
     return NextResponse.json({ survey, options: optionRows }, { status: 201 })
   } catch (err) {
