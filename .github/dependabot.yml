@@ -1,0 +1,15 @@
+# A06 OWASP — Dependabot escanea dependencias npm cada semana
+# y abre Pull Requests automáticos cuando hay vulnerabilidades o updates
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "America/Mexico_City"
+    open-pull-requests-limit: 5
+    labels:
+      - "security"
+      - "dependencies"

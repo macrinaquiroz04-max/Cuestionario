@@ -29,6 +29,10 @@ export async function POST(req: NextRequest) {
 
   if (currentAttempts >= MAX_ATTEMPTS) {
     const ttl = await redis.ttl(rlKey)
+    // A09 OWASP — Log de alerta de seguridad (visible en Render logs)
+    console.warn(
+      `[SECURITY ALERT] Login bloqueado por fuerza bruta | IP hash: ${ipHash} | Intentos: ${currentAttempts} | TTL: ${ttl}s | ${new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'short', timeStyle: 'medium' }).format(new Date())}`
+    )
     return NextResponse.json(
       { error: `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil((ttl > 0 ? ttl : WINDOW_SECONDS) / 60)} minutos.` },
       { status: 429, headers: { 'Retry-After': String(ttl > 0 ? ttl : WINDOW_SECONDS) } }
@@ -79,6 +83,8 @@ export async function POST(req: NextRequest) {
 
     if (!valid) {
       await recordFailure()
+      const attempts = await redis.get<number>(rlKey) ?? 1
+      console.warn(`[SECURITY] Login fallido | IP hash: ${ipHash} | Intento ${attempts}/${MAX_ATTEMPTS}`)
       return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 })
     }
 
