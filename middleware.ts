@@ -14,6 +14,7 @@ const PUBLIC_ADMIN_PATHS = ['/admin/login']
 
 /**
  * Añade cabeceras de seguridad a cualquier respuesta (A05 OWASP).
+ * – Content-Security-Policy → evita XSS y carga de recursos externos no autorizados
  * – X-Frame-Options         → evita clickjacking
  * – X-Content-Type-Options  → evita MIME sniffing
  * – Referrer-Policy         → no filtra URL al hacer clic en enlaces externos
@@ -21,6 +22,20 @@ const PUBLIC_ADMIN_PATHS = ['/admin/login']
  * – HSTS                    → fuerza HTTPS en producción
  */
 function applySecurityHeaders(res: NextResponse): NextResponse {
+  res.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval requerido por Next.js
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.r2.dev https://*.cloudflarestorage.com",
+      "connect-src 'self'",
+      "font-src 'self'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; ')
+  )
   res.headers.set('X-Frame-Options', 'DENY')
   res.headers.set('X-Content-Type-Options', 'nosniff')
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
