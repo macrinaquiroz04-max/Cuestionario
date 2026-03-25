@@ -57,6 +57,7 @@ const isAllowedImageUrl = (url: string) => {
     return (
       hostname.endsWith('.r2.dev') ||
       hostname.endsWith('.cloudflarestorage.com') ||
+      hostname.endsWith('.supabase.co') ||
       // Soporte para dominio personalizado R2 via variable de entorno
       (process.env.R2_PUBLIC_URL ? hostname === new URL(process.env.R2_PUBLIC_URL).hostname : false)
     )

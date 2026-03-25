@@ -44,6 +44,7 @@ const isAllowedImageUrl = (url: string) => {
     return (
       hostname.endsWith('.r2.dev') ||
       hostname.endsWith('.cloudflarestorage.com') ||
+      hostname.endsWith('.supabase.co') ||
       (process.env.R2_PUBLIC_URL ? hostname === new URL(process.env.R2_PUBLIC_URL).hostname : false)
     )
   } catch { return false }
