@@ -29,7 +29,9 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
   const [question, setQuestion]     = useState(initialSurvey?.question ?? '')
   const [isActive, setIsActive]     = useState(initialSurvey?.is_active ?? true)
   const [closeAt, setCloseAt]       = useState(
-    initialSurvey?.close_at ? initialSurvey.close_at.slice(0, 16) : ''
+    initialSurvey?.close_at
+      ? new Date(initialSurvey.close_at).toISOString().slice(0, 16)
+      : ''
   )
   const [options, setOptions] = useState<OptionField[]>(
     initialOptions?.map(o => ({ id: o.id, text: o.text, order: o.order })) ??
