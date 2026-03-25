@@ -67,7 +67,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
     const pdfBuffer = await generateSurveyPDF(data)
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="reporte-${id}.pdf"`,
