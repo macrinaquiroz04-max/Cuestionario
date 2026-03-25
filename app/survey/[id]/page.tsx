@@ -45,7 +45,7 @@ export default async function SurveyPage({ params }: PageProps) {
               src={survey.image_url}
               alt={survey.title}
               className="rounded-xl shadow max-w-full h-auto"
-              style={{ maxHeight: '480px', imageOrientation: 'from-image' }}
+              style={{ maxHeight: '280px', maxWidth: '280px', imageOrientation: 'from-image' }}
             />
           </div>
         )}
