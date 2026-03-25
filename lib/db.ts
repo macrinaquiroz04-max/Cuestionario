@@ -25,9 +25,6 @@ function getSQL() {
   return _sql
 }
 
-  return _sql
-}
-
 export const sql = new Proxy({} as ReturnType<typeof postgres>, {
   get(_target, prop) {
     const instance = getSQL()
