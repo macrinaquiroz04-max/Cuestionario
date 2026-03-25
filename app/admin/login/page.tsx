@@ -3,8 +3,9 @@
  */
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Toast from '@/components/Toast'
 
 function AdminLoginForm() {
   const router = useRouter()
@@ -16,6 +17,16 @@ function AdminLoginForm() {
   const [showPassword, setShowPwd] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState<string | null>(null)
+  const [toast, setToast]         = useState<string | null>(null)
+
+  // Detectar si venimos de un cierre de sesión
+  useEffect(() => {
+    const flag = sessionStorage.getItem('vox_toast')
+    if (flag === 'logout') {
+      sessionStorage.removeItem('vox_toast')
+      setToast('logout')
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -36,7 +47,11 @@ function AdminLoginForm() {
         return
       }
 
-      router.push(from)
+      // Guardar flag para mostrar toast en el panel
+      sessionStorage.setItem('vox_toast', 'login')
+      // Validar que `from` sea relativo para evitar open redirect
+      const dest = from.startsWith('/') ? from : '/admin/dashboard'
+      router.push(dest)
     } catch {
       setError('Error de red. Intenta de nuevo.')
     } finally {
@@ -46,6 +61,9 @@ function AdminLoginForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-900 to-brand-700 flex items-center justify-center p-4">
+      {toast === 'logout' && (
+        <Toast message="Sesión cerrada correctamente" type="info" onDone={() => setToast(null)} />
+      )}
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">📊</div>

@@ -25,6 +25,8 @@ export default function AdminSidebar() {
     try {
       await fetch('/api/admin/logout', { method: 'POST' })
     } catch { /* noop */ }
+    // Flag para mostrar toast en login
+    sessionStorage.setItem('vox_toast', 'logout')
     // Forzar recarga completa para que el middleware limpie la sesión
     window.location.replace('/admin/login')
   }
