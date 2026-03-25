@@ -14,7 +14,13 @@ function getClient(): IORedis {
     lazyConnect: false,
     enableOfflineQueue: true,
     maxRetriesPerRequest: 3,
+    retryStrategy: (times) => Math.min(times * 200, 5000),
     tls: url.startsWith('rediss://') ? {} : undefined,
+  })
+  // Sin este listener, un error de conexión TCP (ECONNRESET, ETIMEDOUT) que
+  // ocurre cuando el servidor Redis cierra la conexión idle mata el proceso Node.
+  _client.on('error', (err: Error) => {
+    console.error('[Redis] connection error (will auto-reconnect):', err.message)
   })
   return _client
 }
