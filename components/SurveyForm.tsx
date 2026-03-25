@@ -30,7 +30,11 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
   const [isActive, setIsActive]     = useState(initialSurvey?.is_active ?? true)
   const [closeAt, setCloseAt]       = useState(
     initialSurvey?.close_at
-      ? new Date(initialSurvey.close_at).toISOString().slice(0, 16)
+      ? new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'America/Mexico_City',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit',
+        }).format(new Date(initialSurvey.close_at)).replace(' ', 'T')
       : ''
   )
   const [options, setOptions] = useState<OptionField[]>(
@@ -38,8 +42,9 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
     [{ text: '', order: 0 }, { text: '', order: 1 }]
   )
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const [createdId, setCreatedId] = useState<string | null>(null)
 
   function addOption() {
     if (options.length >= 10) return
@@ -66,7 +71,7 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
       image_url: imageUrl,
       question,
       is_active: isActive,
-      close_at: closeAt ? new Date(closeAt).toISOString() : null,
+      close_at: closeAt ? new Date(closeAt + '-06:00').toISOString() : null,
       options: options.map((o, i) => ({ ...o, text: o.text.trim(), order: i })).filter(o => o.text),
     }
 
@@ -93,13 +98,61 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
         return
       }
 
-      router.push('/admin/surveys')
-      router.refresh()
+      if (mode === 'create') {
+        setCreatedId(data.survey.id)
+      } else {
+        router.push('/admin/surveys')
+        router.refresh()
+      }
     } catch {
       setError('Error de red al guardar')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (createdId) {
+    const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/survey/${createdId}`
+    return (
+      <div className="max-w-2xl space-y-4">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6 space-y-3">
+          <p className="text-green-700 font-semibold text-lg">¡Encuesta creada exitosamente!</p>
+          <p className="text-sm text-gray-600">Comparte este enlace con los participantes:</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={publicUrl}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-mono"
+            />
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(publicUrl)}
+              className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+            >
+              Copiar
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/admin/surveys')}
+            className="px-5 py-2.5 bg-brand-600 text-white font-semibold rounded-lg hover:bg-brand-700 transition-colors"
+          >
+            Ir a la lista
+          </button>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Ver encuesta
+          </a>
+        </div>
+      </div>
+    )
   }
 
   return (

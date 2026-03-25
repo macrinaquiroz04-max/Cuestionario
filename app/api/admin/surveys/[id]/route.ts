@@ -92,12 +92,12 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     const [survey] = await sql<Survey[]>`
       UPDATE surveys SET
-        title       = COALESCE(${title ?? null}, title),
-        description = CASE WHEN ${description !== undefined} THEN ${description ?? null} ELSE description END,
-        image_url   = CASE WHEN ${image_url !== undefined} THEN ${image_url ?? null} ELSE image_url END,
-        question    = COALESCE(${question ?? null}, question),
-        is_active   = COALESCE(${is_active ?? null}, is_active),
-        close_at    = CASE WHEN ${close_at !== undefined} THEN ${close_at ?? null} ELSE close_at END
+        title       = ${title       !== undefined ? title       : existing.title},
+        description = ${description !== undefined ? description : existing.description},
+        image_url   = ${image_url   !== undefined ? image_url   : existing.image_url},
+        question    = ${question    !== undefined ? question    : existing.question},
+        is_active   = ${is_active   !== undefined ? is_active   : existing.is_active},
+        close_at    = ${close_at    !== undefined ? close_at    : existing.close_at}
       WHERE id = ${id}
       RETURNING *
     `
