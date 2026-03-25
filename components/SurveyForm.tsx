@@ -45,6 +45,7 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
+  const [copied, setCopied]     = useState(false)
 
   function addOption() {
     if (options.length >= 10) return
@@ -113,6 +114,28 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
 
   if (createdId) {
     const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/survey/${createdId}`
+
+    async function copyLink() {
+      try {
+        await navigator.clipboard.writeText(publicUrl)
+      } catch {
+        // Fallback para móvil / Safari sin permisos de clipboard
+        const el = document.createElement('textarea')
+        el.value = publicUrl
+        el.style.position = 'fixed'
+        el.style.left = '-9999px'
+        el.style.top = '-9999px'
+        document.body.appendChild(el)
+        el.focus()
+        el.select()
+        el.setSelectionRange(0, 99999)
+        try { document.execCommand('copy') } catch { /* noop */ }
+        document.body.removeChild(el)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    }
+
     return (
       <div className="max-w-2xl space-y-4">
         <div className="bg-green-50 border border-green-200 rounded-xl p-6 space-y-3">
@@ -123,14 +146,17 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
               type="text"
               readOnly
               value={publicUrl}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-mono"
+              onFocus={e => e.target.select()}
+              className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-mono"
             />
             <button
               type="button"
-              onClick={() => navigator.clipboard.writeText(publicUrl)}
-              className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+              onClick={copyLink}
+              className={`flex-shrink-0 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors ${
+                copied ? 'bg-green-600' : 'bg-brand-600 hover:bg-brand-700'
+              }`}
             >
-              Copiar
+              {copied ? '¡Copiado!' : 'Copiar'}
             </button>
           </div>
         </div>
@@ -259,13 +285,13 @@ export default function SurveyForm({ initialSurvey, initialOptions, mode }: Surv
           </label>
         </div>
 
-        <div>
+        <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de cierre</label>
           <input
             type="datetime-local"
             value={closeAt}
             onChange={e => setCloseAt(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>

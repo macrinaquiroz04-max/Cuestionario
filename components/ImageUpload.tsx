@@ -46,8 +46,8 @@ export default function ImageUpload({ value, onChange }: ImageUploadProps) {
   return (
     <div className="space-y-2">
       {value && (
-        <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200">
-          <Image src={value} alt="Portada" fill className="object-cover" />
+        <div className="relative w-full rounded-lg overflow-hidden border border-gray-200" style={{ aspectRatio: '16/9' }}>
+          <Image src={value} alt="Portada" fill className="object-cover" style={{ imageOrientation: 'from-image' }} />
           <button
             type="button"
             onClick={() => onChange(null)}

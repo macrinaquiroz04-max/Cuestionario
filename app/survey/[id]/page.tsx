@@ -40,11 +40,12 @@ export default async function SurveyPage({ params }: PageProps) {
       <div className="max-w-2xl mx-auto px-4 py-10">
         {/* Imagen de portada */}
         {survey.image_url && (
-          <div className="w-48 h-48 mx-auto rounded-xl overflow-hidden mb-6 shadow">
+          <div className="w-full rounded-xl overflow-hidden mb-6 shadow" style={{ aspectRatio: '16/9' }}>
             <img
               src={survey.image_url}
               alt={survey.title}
               className="w-full h-full object-cover object-center"
+              style={{ imageOrientation: 'from-image' }}
             />
           </div>
         )}
