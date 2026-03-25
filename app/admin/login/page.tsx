@@ -4,11 +4,10 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Toast from '@/components/Toast'
 
 function AdminLoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const from = searchParams.get('from') ?? '/admin/dashboard'
 
@@ -51,7 +50,8 @@ function AdminLoginForm() {
       sessionStorage.setItem('vox_toast', 'login')
       // Validar que `from` sea relativo para evitar open redirect
       const dest = from.startsWith('/') ? from : '/admin/dashboard'
-      router.push(dest)
+      // Recarga completa para que AdminToastHandler se remonte y lea el flag
+      window.location.replace(dest)
     } catch {
       setError('Error de red. Intenta de nuevo.')
     } finally {
