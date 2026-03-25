@@ -1,74 +1,68 @@
 /**
- * lib/r2.ts — Upload de imágenes a Cloudflare R2 con aws4fetch (Edge compatible)
+ * lib/r2.ts — Upload de imágenes a Supabase Storage (REST API, sin SDK)
  */
-import { AwsClient } from 'aws4fetch'
 
-function getR2Client(): AwsClient {
-  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = process.env
-  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
-    throw new Error('Variables R2 no configuradas')
-  }
-  return new AwsClient({
-    accessKeyId: R2_ACCESS_KEY_ID,
-    secretAccessKey: R2_SECRET_ACCESS_KEY,
-    service: 's3',
-    region: 'auto',
-  })
+const BUCKET = 'surveys'
+
+function getSupabaseConfig() {
+  const url = process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error('SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no configurados')
+  return { url: url.replace(/\/$/, ''), key }
 }
 
 /**
- * Sube un archivo a R2 y retorna la URL pública.
- * @param key - Ruta dentro del bucket (ej: "surveys/abc123.jpg")
- * @param body - ArrayBuffer o Uint8Array con el contenido del archivo
- * @param contentType - MIME type del archivo
+ * Sube un archivo a Supabase Storage y retorna la URL pública.
  */
 export async function uploadToR2(
-  key: string,
+  filePath: string,
   body: ArrayBuffer | Uint8Array,
   contentType: string
 ): Promise<string> {
-  const { R2_ACCOUNT_ID, R2_BUCKET_NAME, R2_PUBLIC_URL } = process.env
+  const { url, key } = getSupabaseConfig()
 
-  if (!R2_ACCOUNT_ID || !R2_BUCKET_NAME || !R2_PUBLIC_URL) {
-    throw new Error('Variables R2 incompletas')
-  }
+  const uploadUrl = `${url}/storage/v1/object/${BUCKET}/${filePath}`
 
-  const client = getR2Client()
-  const url = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${key}`
-
-  const response = await client.fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': contentType },
+  const response = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': contentType,
+      'x-upsert': 'true',
+    },
     body: body as BodyInit,
   })
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`Error al subir a R2: ${response.status} — ${text}`)
+    throw new Error(`Error al subir imagen: ${response.status} — ${text}`)
   }
 
-  // Retornar URL pública
-  return `${R2_PUBLIC_URL.replace(/\/$/, '')}/${key}`
+  return `${url}/storage/v1/object/public/${BUCKET}/${filePath}`
 }
 
 /**
- * Elimina un objeto de R2.
+ * Elimina un objeto de Supabase Storage.
  */
 export async function deleteFromR2(key: string): Promise<void> {
-  const { R2_ACCOUNT_ID, R2_BUCKET_NAME } = process.env
-  if (!R2_ACCOUNT_ID || !R2_BUCKET_NAME) return
-
-  const client = getR2Client()
-  const url = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${key}`
-
-  await client.fetch(url, { method: 'DELETE' })
+  try {
+    const { url, key: serviceKey } = getSupabaseConfig()
+    const deleteUrl = `${url}/storage/v1/object/${BUCKET}/${key}`
+    await fetch(deleteUrl, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${serviceKey}` },
+    })
+  } catch {
+    // Si no hay config, simplemente no eliminamos
+  }
 }
 
 /**
- * Extrae el key de R2 a partir de la URL pública.
+ * Extrae el key a partir de la URL pública de Supabase Storage.
  */
 export function keyFromURL(publicUrl: string): string | null {
-  const base = process.env.R2_PUBLIC_URL
-  if (!base || !publicUrl.startsWith(base)) return null
-  return publicUrl.slice(base.replace(/\/$/, '').length + 1)
+  const marker = `/storage/v1/object/public/${BUCKET}/`
+  const idx = publicUrl.indexOf(marker)
+  if (idx === -1) return null
+  return publicUrl.slice(idx + marker.length)
 }
