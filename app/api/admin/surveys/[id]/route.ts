@@ -104,40 +104,47 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
     let updatedOptions: Option[] = []
     if (options) {
-      // Obtener opciones actuales en BD
-      const currentOpts = await sql<{id: string}[]>`SELECT id FROM options WHERE survey_id = ${id}`
-      const currentIds = new Set(currentOpts.map(o => o.id))
-      const incomingIds = new Set(options.filter(o => o.id).map(o => o.id!))
+      // Toda la manipulación de opciones en una sola transacción para evitar
+      // race conditions entre DELETE votes / DELETE options y votos entrantes.
+      updatedOptions = await sql.begin(async (txRaw) => {
+        // TransactionSql en postgres v3 no expone call signatures en los tipos;
+        // se castea a la misma firma que sql para poder usar tagged templates.
+        const tx = txRaw as unknown as typeof sql
 
-      // Borrar votos y opciones que fueron eliminadas del formulario
-      for (const cid of currentIds) {
-        if (!incomingIds.has(cid)) {
-          await sql`DELETE FROM votes WHERE option_id = ${cid}`
-          await sql`DELETE FROM options WHERE id = ${cid}`
-        }
-      }
+        const currentOpts = await tx<{id: string}[]>`SELECT id FROM options WHERE survey_id = ${id}`
+        const currentIds = new Set(currentOpts.map((o: {id: string}) => o.id))
+        const incomingIds = new Set(options.filter(o => o.id).map(o => o.id as string))
 
-      // Actualizar o insertar cada opción
-      updatedOptions = []
-      for (const o of options) {
-        if (o.id && currentIds.has(o.id)) {
-          // Opción existente: actualizar texto y orden
-          const [opt] = await sql<Option[]>`
-            UPDATE options SET text = ${o.text}, "order" = ${o.order}::integer
-            WHERE id = ${o.id}
-            RETURNING *
-          `
-          updatedOptions.push(opt)
-        } else {
-          // Opción nueva: insertar
-          const [opt] = await sql<Option[]>`
-            INSERT INTO options (survey_id, text, "order")
-            VALUES (${id}, ${o.text}, ${o.order}::integer)
-            RETURNING *
-          `
-          updatedOptions.push(opt)
+        // Borrar votos y opciones que fueron eliminadas del formulario
+        for (const cid of currentIds) {
+          if (!incomingIds.has(cid)) {
+            await tx`DELETE FROM votes WHERE option_id = ${cid}`
+            await tx`DELETE FROM options WHERE id = ${cid}`
+          }
         }
-      }
+
+        // Actualizar o insertar cada opción
+        const result: Option[] = []
+        for (const o of options) {
+          if (o.id && currentIds.has(o.id)) {
+            const [opt] = await tx<Option[]>`
+              UPDATE options SET text = ${o.text}, "order" = ${o.order}::integer
+              WHERE id = ${o.id}
+              RETURNING *
+            `
+            result.push(opt)
+          } else {
+            const [opt] = await tx<Option[]>`
+              INSERT INTO options (survey_id, text, "order")
+              VALUES (${id}, ${o.text}, ${o.order}::integer)
+              RETURNING *
+            `
+            result.push(opt)
+          }
+        }
+        return result
+      })
+
       // Limpiar contadores Redis (cambió la estructura de opciones)
       await redis.del(SURVEY_COUNTS_KEY(id))
     } else {
