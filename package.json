@@ -15,7 +15,7 @@
     "@upstash/redis": "^1.37.0",
     "aws4fetch": "^1.0.17",
     "ioredis": "^5.10.1",
-    "jose": "^5.2.3",
+    "jose": "^6.2.2",
     "next": "14.2.35",
     "pdf-lib": "^1.17.1",
     "postgres": "^3.4.4",
