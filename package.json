@@ -11,7 +11,7 @@
     "worker:pdf:deploy": "cd workers && npx wrangler deploy pdf-generator.ts --name pdf-generator"
   },
   "dependencies": {
-    "@react-pdf/renderer": "^3.3.3",
+    "@react-pdf/renderer": "^4.3.2",
     "@upstash/redis": "^1.37.0",
     "aws4fetch": "^1.0.17",
     "ioredis": "^5.10.1",
